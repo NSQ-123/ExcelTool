@@ -1,0 +1,7 @@
+ExcelTool\obj
+ExcelTool\bin\Debug\net9.0\ExcelTool.dll
+ExcelTool\bin\Debug\net9.0\ExcelTool.pdb
+ExcelTool/bin/Debug/net9.0/ExcelTool.exe
+.idea
+ExcelTool.sln.DotSettings.user
+ExcelTool\csharpOutput\Person.cs
