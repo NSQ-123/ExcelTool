@@ -44,11 +44,11 @@ public partial class T_Person
        var fields = csvline.Split(',');
        if (fields.Length < 1) return;
        // 给实例赋值
-       this.ID =(System.Int32)ConvertUtils.ConvertField(fields[0]);
+       this.ID =ConvertUtils.ConvertField<System.Int32>(fields[0]);
 
-       this.Name =(System.String)ConvertUtils.ConvertField(fields[1]);
+       this.Name =ConvertUtils.ConvertField<System.String>(fields[1]);
 
-       this.Age =(System.Int32)ConvertUtils.ConvertField(fields[2]);
+       this.Age =ConvertUtils.ConvertField<System.Int32>(fields[2]);
 
 
     }
