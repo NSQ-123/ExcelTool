@@ -48,6 +48,7 @@ public class Xlsx2Csharp
                 throw new Exception("工作表格式不正确，缺少必要的字段定义行。");
             }
 
+            StringBuilder fieldLoadBuilder = new StringBuilder();
             for (int i = 0; i < fieldNameRow.LastCellNum; i++)
             {
                 string fieldName = fieldNameRow.GetCell(i)?.StringCellValue ?? "";
@@ -72,17 +73,8 @@ public class Xlsx2Csharp
                     }
 
                     // 添加字段定义
-                    fieldType = fieldType.ToLowerInvariant() switch
-                    {
-                        "int" => "int",
-                        "float" => "float",
-                        "double" => "double",
-                        "string" => "string",
-                        "bool" => "bool",
-                        "long" => "long",
-                        "datetime" => "DateTime",
-                        _ => "string" // 默认类型为 string
-                    };
+                    fieldType = ConvertUtils.GetType(fieldType).ToString(); // 规范化字段类型
+                
 
                     // 将字段名称首字母大写
                     if (!string.IsNullOrEmpty(fieldName))
@@ -90,6 +82,7 @@ public class Xlsx2Csharp
                         fieldName = char.ToUpper(fieldName[0]) + fieldName.Substring(1);
                     }
                     classBuilder.AppendLine($"    public {fieldType} {fieldName} {{ get; set; }}");
+                    fieldLoadBuilder.AppendLine($"       this.{fieldName} =ConvertUtils.ConvertField<{fieldType}>(fields[{i}]);\n");
                 }
             }
 
@@ -115,6 +108,20 @@ public class Xlsx2Csharp
             classBuilder.AppendLine("        return _dataList;");
             classBuilder.AppendLine("    }");
 
+           
+            //添加Load方法 生成数据
+            classBuilder.AppendLine();
+            classBuilder.AppendLine($"    public void Load(string csvline)");
+            classBuilder.AppendLine("    {");
+            classBuilder.AppendLine("       if (string.IsNullOrEmpty(csvline)) return;");
+            classBuilder.AppendLine("       // 按逗号分隔字段");
+            classBuilder.AppendLine("       var fields = csvline.Split(',');");
+            classBuilder.AppendLine("       if (fields.Length < 1) return;");
+            classBuilder.AppendLine("       // 给实例赋值");
+            classBuilder.AppendLine(fieldLoadBuilder.ToString());
+            classBuilder.AppendLine("    }");
+
+            // 添加类结束标记
             classBuilder.AppendLine("}");
 
             // 将生成的类写入文件

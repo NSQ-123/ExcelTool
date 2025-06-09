@@ -9,15 +9,15 @@ public partial class T_Person
     /// <summary>
     /// 标识符
     /// </summary>
-    public int ID { get; set; }
+    public System.Int32 ID { get; set; }
     /// <summary>
     /// 名字
     /// </summary>
-    public string Name { get; set; }
+    public System.String Name { get; set; }
     /// <summary>
     /// 年龄
     /// </summary>
-    public int Age { get; set; }
+    public System.Int32 Age { get; set; }
 
     public static T_Person GetById(int id)
     {
@@ -35,5 +35,21 @@ public partial class T_Person
             _dataList = new List<T_Person>(_dataDic.Values);
         }
         return _dataList;
+    }
+
+    public void Load(string csvline)
+    {
+       if (string.IsNullOrEmpty(csvline)) return;
+       // 按逗号分隔字段
+       var fields = csvline.Split(',');
+       if (fields.Length < 1) return;
+       // 给实例赋值
+       this.ID =(System.Int32)ConvertUtils.ConvertField(fields[0]);
+
+       this.Name =(System.String)ConvertUtils.ConvertField(fields[1]);
+
+       this.Age =(System.Int32)ConvertUtils.ConvertField(fields[2]);
+
+
     }
 }
