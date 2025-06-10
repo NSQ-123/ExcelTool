@@ -8,7 +8,7 @@ using NPOI.SS.UserModel;   // 通用接口
 public class Xlsx2Csharp
 {
     private const string NAME_SPACE = "GameFramework.Table";
-    
+    private const string DictionaryName = "DataMap";
     
     
     
@@ -63,7 +63,7 @@ public class Xlsx2Csharp
             classBuilder.AppendLine("{");
 
             // 添加静态字典字段
-            classBuilder.AppendLine($"    private static Dictionary<int, {className}> _dataDic = new Dictionary<int, {className}>();");
+            classBuilder.AppendLine($"    public static Dictionary<int, {className}> {DictionaryName} = new Dictionary<int, {className}>();");
             classBuilder.AppendLine($"    private static List<{className}> _dataList;");
             classBuilder.AppendLine();
 
@@ -125,12 +125,12 @@ public class Xlsx2Csharp
                     if (!isArray)
                     {
                         classBuilder.AppendLine($"    public {fieldType} {fieldName} {{ get; set; }}");
-                        fieldLoadBuilder.AppendLine($"       this.{fieldName} ={GetLoadFieldMethod(fieldType,i)};");
+                        fieldLoadBuilder.AppendLine($"        this.{fieldName} = {GetLoadFieldMethod(fieldType, i)};");
                     }
                     else
                     {
                         classBuilder.AppendLine($"    public List<{arrType}> {fieldName} {{ get; set; }}");
-                        fieldLoadBuilder.AppendLine($"       this.{fieldName} = ConvertUtils.LoadArgs<{arrType}>(data[{i}]);");
+                        fieldLoadBuilder.AppendLine($"        this.{fieldName} = ConvertUtils.LoadArgs<{arrType}>(data[{i}]);");
                     }
                     
                 }
@@ -140,7 +140,7 @@ public class Xlsx2Csharp
             classBuilder.AppendLine();
             classBuilder.AppendLine($"    public static {className} GetById(int id)");
             classBuilder.AppendLine("    {");
-            classBuilder.AppendLine("        if (_dataDic.TryGetValue(id, out var value))");
+            classBuilder.AppendLine($"       if ({DictionaryName}.TryGetValue(id, out var value))");
             classBuilder.AppendLine("        {");
             classBuilder.AppendLine("            return value;");
             classBuilder.AppendLine("        }");
@@ -153,7 +153,7 @@ public class Xlsx2Csharp
             classBuilder.AppendLine("    {");
             classBuilder.AppendLine("        if (_dataList == null)");
             classBuilder.AppendLine("        {");
-            classBuilder.AppendLine($"            _dataList = new List<{className}>(_dataDic.Values);");
+            classBuilder.AppendLine($"            _dataList = new List<{className}>({DictionaryName}.Values);");
             classBuilder.AppendLine("        }");
             classBuilder.AppendLine("        return _dataList;");
             classBuilder.AppendLine("    }");
