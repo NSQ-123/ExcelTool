@@ -1,193 +1,159 @@
 
-public class ConvertUtils
+namespace GameFramework.Table
 {
-  
-  public static string GetLoadFieldMethod(string fieldType, int index)
+    public class ConvertUtils
     {
-        if (string.IsNullOrEmpty(fieldType))
+        //=========================================================
+
+        public static int GetInt(string data)
         {
-            return $"ConvertUtils.GetString(fields[{index}])"; // 默认类型为 string
-        }
+            if (string.IsNullOrEmpty(data))
+            {
+                return 0;
+            }
 
-        switch (fieldType)
-        {
-            case "int":
-                return $"ConvertUtils.GetInt32(fields[{index}])";
-            case "float":
-                return $"ConvertUtils.GetFloat(fields[{index}])";
-            case "double":
-                return $"ConvertUtils.GetDouble(fields[{index}])";
-            case "string":
-                return $"ConvertUtils.GetString(fields[{index}])";
-            case "bool":
-                return $"ConvertUtils.GetBool(fields[{index}])";
-            case "long":
-                return $"ConvertUtils.GetLong(fields[{index}])";
-            case "DateTime":
-                return $"ConvertUtils.GetDateTime(fields[{index}])";
-            default:
-                return $"ConvertUtils.GetString(fields[{index}])"; // 默认类型为 string
-        }
-    }
-
-
-
-
-
-    public static string GetType(string fieldType, string fieldName)
-    {
-        if (string.IsNullOrEmpty(fieldType))
-        {
-            return "string"; // 默认类型为 string
-        }
-
-        return fieldType.ToLowerInvariant() switch
-        {
-            "int" => "int",
-            "float" => "float",
-            "double" => "double",
-            "string" => "string",
-            "bool" => "bool",
-            "long" => "long",
-            "datetime" => "DateTime",
-            _ => "string" // 默认类型为 string
-        };
-    }
-
-
-
-    //=========================================================
-
-    public static Int32 GetInt32(string data)
-    {
-        if (string.IsNullOrEmpty(data))
-        {
+            try
+            {
+                return Convert.ToInt32(data);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[读表]转换 Error int:{data}\n{e}");
+            }
             return 0;
         }
 
-        try
+        public static string GetString(string data)
         {
-            return Convert.ToInt32(data);
+            if (string.IsNullOrEmpty(data))
+            {
+                return string.Empty;
+            }
+            data = data.Trim('"');
+            return Convert.ToString(data);
         }
-        catch (Exception e)
-        {
-            Console.WriteLine($"[读表]转换 Error int:{data}\n{e}");
-        }
-        return 0;
-    }
 
-    public static string GetString(string data)
-    {
-        if (string.IsNullOrEmpty(data))
+        public static float GetFloat(string data)
         {
-            return string.Empty;
-        }
-        data = data.Trim('"');
-        return Convert.ToString(data);
-    }
-
-    public static float GetFloat(string data)
-    {
-        if (string.IsNullOrEmpty(data))
-        {
+            if (string.IsNullOrEmpty(data))
+            {
+                return 0f;
+            }
+            try
+            {
+                return Convert.ToSingle(data);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[读表]转换 Error float:{data}\n{e}");
+            }
             return 0f;
-        }
-         try
-        {
-           return Convert.ToSingle(data);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"[读表]转换 Error float:{data}\n{e}");
-        }
-       return 0f;
-        
-    }
 
-    public static Double GetDouble(string data)
-    {
-        if (string.IsNullOrEmpty(data))
+        }
+
+        public static Double GetDouble(string data)
         {
+            if (string.IsNullOrEmpty(data))
+            {
+                return 0d;
+            }
+            try
+            {
+                return Convert.ToDouble(data);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[读表]转换 Error double:{data}\n{e}");
+            }
             return 0d;
         }
-        try
-        {
-            return Convert.ToDouble(data);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"[读表]转换 Error double:{data}\n{e}");
-        }
-       return 0d;
-    }
 
-    public static bool GetBool(string data)
-    {
-        if (string.IsNullOrEmpty(data))
+        public static bool GetBool(string data)
         {
+            if (string.IsNullOrEmpty(data))
+            {
+                return false;
+            }
+
+            try
+            {
+                return Convert.ToBoolean(Convert.ToInt32(data));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[读表]转换 Error bool:{data}\n{e}");
+            }
             return false;
         }
 
-        try
+        public static DateTime GetDateTime(string data)
         {
-           return Convert.ToBoolean(Convert.ToInt32(data));
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"[读表]转换 Error bool:{data}\n{e}");
-        }
-        return false;
-    }
+            if (string.IsNullOrEmpty(data))
+            {
+                return DateTime.MinValue;
+            }
 
-    public static DateTime GetDateTime(string data)
-    {
-        if (string.IsNullOrEmpty(data))
-        {
+            try
+            {
+                return Convert.ToDateTime(data);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"[读表]转换 Error DateTime:{data}\n{e}");
+            }
             return DateTime.MinValue;
         }
 
-        try
+
+
+        //====================================================================
+
+        public static List<T> LoadArgs<T>(string content) where T : ITable, new()
         {
-            return Convert.ToDateTime(data);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"[读表]转换 Error DateTime:{data}\n{e}");
-        }
-        return DateTime.MinValue;
-    }
-
-
-
-    //====================================================================
-
-    private static List<T> ConvertToListFromStr<T>(string data) where T : struct
-    {
-        if (string.IsNullOrEmpty(data))
-        {
-            return new List<T>();
-        }
-
-        data = data.Trim('"');
-        if (data[0] == '\"')
-        {
-            data = data.Substring(1, data.Length - 2);
+            content = content.Trim('"');
+            List<T> list = new List<T>();
+            string[] rows = content.Split(';');
+            for (int i = 0; i < rows.Length; i++)
+            {
+                if (rows[i].Length > 0)
+                {
+                    string[] rowValues = rows[i].Split(',');
+                    T t = new T();
+                    t.Load(rowValues);
+                    list.Add(t);
+                }
+            }
+            return list;
         }
 
-        string[] strArray = data.Split(',');
-        if (null == strArray || 0 == strArray.Length)
+        //===================================================================
+        private static List<T> ConvertToListFromStr<T>(string data) where T : struct
         {
-            return new List<T>();
-        }
+            if (string.IsNullOrEmpty(data))
+            {
+                return new List<T>();
+            }
 
-        List<T> returnArray = new List<T>();
-        foreach (var item in strArray)
-        {
-            returnArray.Add((T)Convert.ChangeType(item, typeof(T)));
-        }
+            data = data.Trim('"');
+            if (data[0] == '\"')
+            {
+                data = data.Substring(1, data.Length - 2);
+            }
 
-        return returnArray;
-    }
+            string[] strArray = data.Split(',');
+            if (null == strArray || 0 == strArray.Length)
+            {
+                return new List<T>();
+            }
+
+            List<T> returnArray = new List<T>();
+            foreach (var item in strArray)
+            {
+                returnArray.Add((T)Convert.ChangeType(item, typeof(T)));
+            }
+
+            return returnArray;
+        }
         public static List<Int32> GetIntList(string data)
         {
             return ConvertToListFromStr<Int32>(data);
@@ -227,4 +193,5 @@ public class ConvertUtils
 
 
 
+    }
 }

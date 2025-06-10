@@ -7,17 +7,16 @@ class Program
 {
     static void Main(string[] args)
     {
+        // 导出csv
+        // var inputCsv = Path.Combine(Directory.GetCurrentDirectory(), "../../../excel");
+        // var outputCsv = Path.Combine(Directory.GetCurrentDirectory(), "../../../csvOutput");
+        // Xlsx2Csv.ConvertAll(inputCsv, outputCsv);
 
-        //Xlsx2Csv.ConvertAll("/Users/ttwj/vs/ExcelTool/ExcelTool/excel", "/Users/ttwj/vs/ExcelTool/ExcelTool/csvOutput");  
-        //Xlsx2Csharp.ConvertAll("/Users/ttwj/vs/ExcelTool/ExcelTool/excel", "/Users/ttwj/vs/ExcelTool/ExcelTool/csharpOutput");
-        //打印当前文件夹
-        var input = Path.Combine(Directory.GetCurrentDirectory(), "../../../excel");
-        var output = Path.Combine(Directory.GetCurrentDirectory(), "../../../csharpOutput");
-        Console.WriteLine("当前文件夹: " + Directory.GetCurrentDirectory());
 
-        Console.WriteLine(input);
-        Console.WriteLine(output);
-        Xlsx2Csharp.ConvertAll(input, output);
+        // //导出csharp
+        var inputCsharp = Path.Combine(Directory.GetCurrentDirectory(), "../../../excel");
+        var outputCsharp = Path.Combine(Directory.GetCurrentDirectory(), "../../../csharpOutput");
+        Xlsx2Csharp.ConvertAll(inputCsharp, outputCsharp);
         
     }
 }

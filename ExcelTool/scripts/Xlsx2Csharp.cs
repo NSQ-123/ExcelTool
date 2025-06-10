@@ -7,6 +7,29 @@ using NPOI.SS.UserModel;   // 通用接口
 
 public class Xlsx2Csharp
 {
+    private const string NAME_SPACE = "GameFramework.Table";
+    
+    
+    
+    
+    //读取路径下的所有 Excel 文件，将其转换为 CSV 文件
+    public static void ConvertAll(string inputDir, string outputDir)
+    {
+        if (!Directory.Exists(outputDir))
+        {
+            Directory.CreateDirectory(outputDir);
+        }
+
+        var files = Directory.GetFiles(inputDir, "*.xlsx");
+        foreach (var file in files)
+        {
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            var outputFilePath = Path.Combine(outputDir, $"{fileName}.cs");
+            ConvertToCsharp(file, outputFilePath);
+        }
+    }
+    
+    
     /// <summary>
     /// 将 Excel 文件的第二个工作表转换为 C# 类定义
     /// </summary>
@@ -25,11 +48,18 @@ public class Xlsx2Csharp
             string className = "T_" + fileName;
 
             // 创建 StringBuilder 用于生成 C# 类定义
+            /************************************************************************************/
             StringBuilder classBuilder = new StringBuilder();
             classBuilder.AppendLine("using System;");
             classBuilder.AppendLine("using System.Collections.Generic;");
             classBuilder.AppendLine();
-            classBuilder.AppendLine($"public partial class {className}");
+            /************************************************************************************/
+            if (!string.IsNullOrEmpty(NAME_SPACE))
+            {
+                classBuilder.AppendLine($"namespace {NAME_SPACE}");
+                classBuilder.AppendLine("{");
+            }
+            classBuilder.AppendLine($"public partial class {className} : ITable");
             classBuilder.AppendLine("{");
 
             // 添加静态字典字段
@@ -49,6 +79,7 @@ public class Xlsx2Csharp
             }
 
             StringBuilder fieldLoadBuilder = new StringBuilder();
+            StringBuilder subClassBuilder = null;
             for (int i = 0; i < fieldNameRow.LastCellNum; i++)
             {
                 string fieldName = fieldNameRow.GetCell(i)?.StringCellValue ?? "";
@@ -72,17 +103,36 @@ public class Xlsx2Csharp
                         classBuilder.AppendLine($"    /// </summary>");
                     }
 
-                    // 添加字段定义
-                    fieldType = ConvertUtils.GetType(fieldType,fieldName); // 规范化字段类型
-                
-
                     // 将字段名称首字母大写
                     if (!string.IsNullOrEmpty(fieldName))
                     {
                         fieldName = char.ToUpper(fieldName[0]) + fieldName.Substring(1);
                     }
-                    classBuilder.AppendLine($"    public {fieldType} {fieldName} {{ get; set; }}");
-                    fieldLoadBuilder.AppendLine($"       this.{fieldName} ={ConvertUtils.GetLoadFieldMethod(fieldType,i)};");
+                    
+                    // 添加字段定义
+                    fieldType = GetCsharpType(fieldType); // 规范化字段类型
+                    var isArray = fieldType.ToLowerInvariant().StartsWith("arr<") && fieldType.EndsWith(">");
+                    var arrType = string.Empty;
+                    
+                    if (isArray)
+                    {
+                        arrType = $"T_{fieldName}";
+                        subClassBuilder??= new StringBuilder();
+                        ProcessArr(fieldType,arrType,subClassBuilder);
+                    }
+
+                  
+                    if (!isArray)
+                    {
+                        classBuilder.AppendLine($"    public {fieldType} {fieldName} {{ get; set; }}");
+                        fieldLoadBuilder.AppendLine($"       this.{fieldName} ={GetLoadFieldMethod(fieldType,i)};");
+                    }
+                    else
+                    {
+                        classBuilder.AppendLine($"    public List<{arrType}> {fieldName} {{ get; set; }}");
+                        fieldLoadBuilder.AppendLine($"       this.{fieldName} = ConvertUtils.LoadArgs<{arrType}>(data[{i}]);");
+                    }
+                    
                 }
             }
 
@@ -111,14 +161,28 @@ public class Xlsx2Csharp
            
             //添加Load方法 生成数据
             classBuilder.AppendLine();
-            classBuilder.AppendLine($"    public void Load(string[] fields)");
+            classBuilder.AppendLine($"    public void Load(string[] data)");
             classBuilder.AppendLine("    {");
             classBuilder.AppendLine(           fieldLoadBuilder.ToString());
             classBuilder.AppendLine("    }");
 
             // 添加类结束标记
             classBuilder.AppendLine("}");
-
+            /************************************************************************************/
+            
+            // 如果存在 arr<...> 类型的字段，则生成对应的子类
+            if(subClassBuilder != null && subClassBuilder.Length > 0)
+            {
+                classBuilder.AppendLine();
+                classBuilder.Append(subClassBuilder.ToString());
+            }
+            
+            // 如果指定了命名空间，则添加命名空间结束标记
+            if (!string.IsNullOrEmpty(NAME_SPACE))
+            {
+                classBuilder.AppendLine("}");
+            }
+            /************************************************************************************/
             // 将生成的类写入文件
             File.WriteAllText(outputFilePath, classBuilder.ToString(), Encoding.UTF8);
         }
@@ -126,20 +190,159 @@ public class Xlsx2Csharp
         Console.WriteLine($"C# 类已生成并保存到 {outputFilePath}");
     }
 
-    //读取路径下的所有 Excel 文件，将其转换为 CSV 文件
-    public static void ConvertAll(string inputDir, string outputDir)
+    private static void ProcessArr(string fieldType,string className,StringBuilder subBuilder)
     {
-        if (!Directory.Exists(outputDir))
+        subBuilder.AppendLine($"public partial class {className} : ITable");
+        subBuilder.AppendLine("{");
+        /*******************************************************************************************/
+        // 处理 arr<...> 类型的字段
+        var innerType = fieldType.Substring(4, fieldType.Length - 5).ToLowerInvariant();
+        var typeList = innerType.Split(',');
+        if (typeList.Length == 1 && typeList[0].EndsWith("slice"))
         {
-            Directory.CreateDirectory(outputDir);
+            // 只有一个slice类型，生成一个List<基础类型>字段
+            string baseType = typeList[0].Replace("slice", "").Trim();
+            if (string.IsNullOrEmpty(baseType)) baseType = "int";
+            baseType = baseType.ToLowerInvariant();
+            subBuilder.AppendLine($"    public List<{GetCSharpBaseType(baseType)}> Args0;");
         }
-
-        var files = Directory.GetFiles(inputDir, "*.xlsx");
-        foreach (var file in files)
+        else
         {
-            var fileName = Path.GetFileNameWithoutExtension(file);
-            var outputFilePath = Path.Combine(outputDir, $"{fileName}.cs");
-            ConvertToCsharp(file, outputFilePath);
+            // 多个类型，生成 Args0, Args1, ...
+            for (int i = 0; i < typeList.Length; i++)
+            {
+                string t = typeList[i].Trim();
+                string fieldTypeStr;
+                if (t.EndsWith("slice"))
+                {
+                    string baseType = t.Replace("slice", "").Trim();
+                    if (string.IsNullOrEmpty(baseType)) baseType = "int";
+                    fieldTypeStr = $"List<{GetCSharpBaseType(baseType)}>";
+                }
+                else
+                {
+                    fieldTypeStr = GetCSharpBaseType(t);
+                }
+                subBuilder.AppendLine($"    public {fieldTypeStr} Args{i};");
+            }
+        }
+        
+        // 实现 ITable 接口
+
+        // 添加 Load 方法
+        subBuilder.AppendLine($"    public void Load(string[] data)");
+        subBuilder.AppendLine("    {");
+        for (int i = 0; i < typeList.Length; i++)
+        {
+            string t = typeList[i].Trim();
+            if (t.EndsWith("slice"))
+            {
+                string baseType = t.Replace("slice", "").Trim();
+                if (string.IsNullOrEmpty(baseType)) baseType = "int";
+                var methodName = GetCSharpBaseType(baseType);
+                //methodName 首字母大写
+                methodName = char.ToUpper(methodName[0]) + methodName.Substring(1);
+                subBuilder.AppendLine($"        Args{i} = ConvertUtils.Get{methodName}List(data[{i}]);");
+            }
+            else
+            {
+                var methodName = GetCSharpBaseType(t);
+                //methodName 首字母大写
+                methodName = char.ToUpper(methodName[0]) + methodName.Substring(1);
+                subBuilder.AppendLine($"        Args{i} = ConvertUtils.Get{methodName}(data[{i}]);");
+            }
+        }
+        subBuilder.AppendLine("    }");
+
+
+        subBuilder.AppendLine("}");
+        subBuilder.AppendLine();
+    }
+
+    private static string GetCSharpBaseType(string type)
+    {
+        switch (type.ToLowerInvariant())
+        {
+            case "int": return "int";
+            case "string": return "string";
+            case "bool": return "bool";
+            case "float": return "float";
+            case "double": return "double";
+            case "long": return "long";
+            case "datetime": return "DateTime";
+            default: return "string";
         }
     }
+
+
+    private static string GetCsharpType(string fieldType)
+    {
+        if (string.IsNullOrEmpty(fieldType))
+        {
+            return "string"; // 默认类型为 string
+        }
+
+        return fieldType.ToLowerInvariant() switch
+        {
+            "int" => "int",
+            "float" => "float",
+            "double" => "double",
+            "string" => "string",
+            "bool" => "bool",
+            "long" => "long",
+            "datetime" => "DateTime",
+            "intslice" => "List<int>",
+            "boolslice" => "List<bool>",
+            "floatslice" => "List<float>",
+            "doubleslice" => "List<double>",
+            "stringslice" => "List<string>",
+            "longslice" => "List<long>",
+            "datetimeslice" => "List<DateTime>",
+            _ => fieldType
+        };
+    }
+
+    private static string GetLoadFieldMethod(string fieldType, int index)
+    {
+        if (string.IsNullOrEmpty(fieldType))
+        {
+            return $"ConvertUtils.GetString(data[{index}])"; // 默认类型为 string
+        }
+
+        switch (fieldType)
+        {
+            case "int":
+                return $"ConvertUtils.GetInt(data[{index}])";
+            case "float":
+                return $"ConvertUtils.GetFloat(data[{index}])";
+            case "double":
+                return $"ConvertUtils.GetDouble(data[{index}])";
+            case "string":
+                return $"ConvertUtils.GetString(data[{index}])";
+            case "bool":
+                return $"ConvertUtils.GetBool(data[{index}])";
+            case "long":
+                return $"ConvertUtils.GetLong(data[{index}])";
+            case "DateTime":
+                return $"ConvertUtils.GetDateTime(data[{index}])";
+            case "List<int>":
+                return $"ConvertUtils.GetIntList(data[{index}])";
+            case "List<bool>":
+                return $"ConvertUtils.GetBoolList(data[{index}])";
+            case "List<float>":
+                return $"ConvertUtils.GetFloatList(data[{index}])";
+            case "List<double>":
+                return $"ConvertUtils.GetDoubleList(data[{index}])";
+            case "List<string>":
+                return $"ConvertUtils.GetStringList(data[{index}])";
+            case "List<long>":
+                return $"ConvertUtils.GetLongList(data[{index}])";
+            case "List<DateTime>":
+                return $"ConvertUtils.GetDateTimeList(data[{index}])";
+            default:
+                throw new NotSupportedException($"不支持的字段类型: {fieldType}");
+        }
+    }
+    
+    
 }
