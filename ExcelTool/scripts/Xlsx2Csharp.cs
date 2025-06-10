@@ -73,7 +73,7 @@ public class Xlsx2Csharp
                     }
 
                     // 添加字段定义
-                    fieldType = ConvertUtils.GetType(fieldType).ToString(); // 规范化字段类型
+                    fieldType = ConvertUtils.GetType(fieldType,fieldName); // 规范化字段类型
                 
 
                     // 将字段名称首字母大写
@@ -82,7 +82,7 @@ public class Xlsx2Csharp
                         fieldName = char.ToUpper(fieldName[0]) + fieldName.Substring(1);
                     }
                     classBuilder.AppendLine($"    public {fieldType} {fieldName} {{ get; set; }}");
-                    fieldLoadBuilder.AppendLine($"       this.{fieldName} =ConvertUtils.ConvertField<{fieldType}>(fields[{i}]);\n");
+                    fieldLoadBuilder.AppendLine($"       this.{fieldName} ={ConvertUtils.GetLoadFieldMethod(fieldType,i)};");
                 }
             }
 
@@ -111,14 +111,9 @@ public class Xlsx2Csharp
            
             //添加Load方法 生成数据
             classBuilder.AppendLine();
-            classBuilder.AppendLine($"    public void Load(string csvline)");
+            classBuilder.AppendLine($"    public void Load(string[] fields)");
             classBuilder.AppendLine("    {");
-            classBuilder.AppendLine("       if (string.IsNullOrEmpty(csvline)) return;");
-            classBuilder.AppendLine("       // 按逗号分隔字段");
-            classBuilder.AppendLine("       var fields = csvline.Split(',');");
-            classBuilder.AppendLine("       if (fields.Length < 1) return;");
-            classBuilder.AppendLine("       // 给实例赋值");
-            classBuilder.AppendLine(fieldLoadBuilder.ToString());
+            classBuilder.AppendLine(           fieldLoadBuilder.ToString());
             classBuilder.AppendLine("    }");
 
             // 添加类结束标记
