@@ -47,6 +47,26 @@ public class Xlsx2Csv
                 throw new Exception($"工作表 '{metaSheet.SheetName}' 不存在。");
             }
 
+            // 先收集所有 usage 含 "c" 的字段索引、类型、名称，顺序与 C# 结构体一致
+            IRow fieldNameRow = metaSheet.GetRow(0); // 字段名
+            IRow fieldTypeRow = metaSheet.GetRow(1); // 字段类型
+            IRow usageRow = metaSheet.GetRow(2);     // 使用方
+            if (fieldNameRow == null || fieldTypeRow == null || usageRow == null)
+                throw new Exception("元数据表格式不正确，缺少必要的字段定义行。");
+
+            var exportFields = new List<(int Col, string FieldType, string FieldName)>();
+            for (int i = 0; i < fieldNameRow.LastCellNum; i++)
+            {
+                string fieldName = fieldNameRow.GetCell(i)?.StringCellValue ?? "";
+                string fieldType = fieldTypeRow.GetCell(i)?.StringCellValue ?? "string";
+                string usage = usageRow.GetCell(i)?.StringCellValue ?? "";
+                if (string.IsNullOrEmpty(usage)) continue;
+                if (usage.ToLowerInvariant().Contains("c"))
+                {
+                    exportFields.Add((i, fieldType, fieldName));
+                }
+            }
+
             // 创建 CSV 文件
             using (StreamWriter writer = new StreamWriter(csvFilePath, false, Encoding.UTF8))
             {
@@ -57,40 +77,25 @@ public class Xlsx2Csv
                     if (i == 0) continue;
                     IRow rowData = dataSheet.GetRow(i);
                     if (rowData != null)
-                    { 
-                        /**********************************************************************/
+                    {
                         //检查第一列是否有数据，如果没有数据则跳过该行
                         ICell firstCell = rowData.GetCell(0);
                         if (firstCell == null || firstCell.CellType == CellType.Blank)
                         {
                             continue; // 如果第一列为空，则跳过该行
                         }
-                        /**********************************************************************/
-                        
-                        // 遍历行中的每个单元格
+
+                        // 只导出 usage 含 c 的字段，顺序与 C# 结构体一致
                         StringBuilder csvLine = new StringBuilder();
-                        for (int j = 0; j < rowData.LastCellNum; j++)
+                        foreach (var (col, fieldType, fieldName) in exportFields)
                         {
-                            ICell cellData = rowData.GetCell(j);
-                            if (cellData != null)
-                            {
-                                var fieldTuple = GetFieldTuple(metaSheet, j);
-                                if(string.IsNullOrEmpty(fieldTuple.FiledType))
-                                    continue; // 如果字段类型为空，则跳过该列
-                                if(string.IsNullOrEmpty(fieldTuple.FieldUsage))
-                                    continue; // 如果使用方为空，则跳过该列
-                                if (fieldTuple.FieldUsage.Contains("n", StringComparison.InvariantCultureIgnoreCase))
-                                    continue; // 如果使用方为 "n"，则跳过该列
-                                /**********************************************************************/
-                                // TODO:仅处理客户端使用的字段（含有 "c"）
-                                /**********************************************************************/
-                                var type = fieldTuple.FiledType.ToLowerInvariant();
-                                string cellStr = GetCellString(cellData);
-                                csvLine.Append(ProcessCellValue(type, cellStr));
-                                csvLine.Append(",");
-                            }
+                            ICell cellData = rowData.GetCell(col);
+                            var type = fieldType.ToLowerInvariant();
+                            string cellStr = cellData != null ? GetCellString(cellData) : string.Empty;
+                            // 类型映射与 C# 结构体一致，支持 arr<...>、slice、基础类型
+                            csvLine.Append(ProcessCellValue(type, cellStr));
+                            csvLine.Append(",");
                         }
-                        
                         //移除csvLine末尾的逗号
                         if (csvLine.Length > 0 && csvLine[^1] == ',')
                         {
@@ -98,7 +103,6 @@ public class Xlsx2Csv
                         }
                         // 写入 CSV 文件
                         writer.WriteLine(csvLine.ToString());
-                        //writer.WriteLine(csvLine.ToString().TrimEnd(','));
                     }
                 }
             }
@@ -127,11 +131,6 @@ public class Xlsx2Csv
         return (filedType, fieldName,fieldUsage);
     }
 
-
-
-
-
-
     // 新增统一获取单元格字符串的方法
     private static string GetCellString(ICell cell)
     {
@@ -140,7 +139,6 @@ public class Xlsx2Csv
         {
             CellType.String => cell.StringCellValue,
             CellType.Boolean => cell.BooleanCellValue.ToString(),
-            CellType.Formula => cell.ToString(),
             CellType.Numeric => DateUtil.IsCellDateFormatted(cell)
                 ? ((DateTime)cell.DateCellValue).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
                 : cell.NumericCellValue.ToString(CultureInfo.InvariantCulture),
@@ -150,66 +148,54 @@ public class Xlsx2Csv
 
     private static string ProcessCellValue(string type, string cellStr)
     {
+        // arr<> 结构，直接返回原有字符串（如需更复杂的结构可扩展）
         if (type.StartsWith("arr<") && type.EndsWith(">"))
-        {
-            // 默认不包裹组
             return ProcessArr(type, cellStr, false);
-        }
-        //intSlice, boolSlice 等
-        if (type.EndsWith("slice"))
+
+        // slice 类型统一用 ConvertUtils 泛型
+        switch (type)
         {
-            return ProcessSlice(type, cellStr, true);
+            case "intslice":
+                return '"' + string.Join(",", GameFramework.Table.ConvertUtils.GetList<int>(cellStr)) + '"';
+            case "boolslice":
+                return '"' + string.Join(",", GameFramework.Table.ConvertUtils.GetList<bool>(cellStr)) + '"';
+            case "floatslice":
+                return '"' + string.Join(",", GameFramework.Table.ConvertUtils.GetList<float>(cellStr)) + '"';
+            case "doubleslice":
+                return '"' + string.Join(",", GameFramework.Table.ConvertUtils.GetList<double>(cellStr)) + '"';
+            case "stringslice":
+                return '"' + string.Join(",", GameFramework.Table.ConvertUtils.GetList<string>(cellStr)) + '"';
+            case "longslice":
+                return '"' + string.Join(",", GameFramework.Table.ConvertUtils.GetList<long>(cellStr)) + '"';
+            case "datetimeslice":
+                var list = GameFramework.Table.ConvertUtils.GetList<System.DateTime>(cellStr);
+                return '"' + string.Join(",", list.ConvertAll(dt => dt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))) + '"';
         }
-        // 处理基本类型
+
+        // 基础类型统一用 ConvertUtils 泛型
         switch (type)
         {
             case "int":
-                return ProcessInt(cellStr);
+                return GameFramework.Table.ConvertUtils.Get<int>(cellStr).ToString();
             case "float":
-                return ProcessFloat(cellStr);
+                return GameFramework.Table.ConvertUtils.Get<float>(cellStr).ToString();
             case "double":
-                return ProcessDouble(cellStr);
+                return GameFramework.Table.ConvertUtils.Get<double>(cellStr).ToString();
             case "long":
-                return ProcessLong(cellStr);
+                return GameFramework.Table.ConvertUtils.Get<long>(cellStr).ToString();
             case "string":
-                return ProcessString(cellStr);
+                return cellStr;
             case "bool":
-                return ProcessBool(cellStr);
+                return GameFramework.Table.ConvertUtils.Get<bool>(cellStr).ToString();
             case "datetime":
-                return ProcessDateTime(cellStr);
-            default:
-                return string.Empty;
+                if (string.IsNullOrEmpty(cellStr)) return string.Empty;
+                var dt = GameFramework.Table.ConvertUtils.Get<System.DateTime>(cellStr);
+                return dt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         }
+        return string.Empty;
     }
 
-    private static string ProcessInt(string cellStr)
-    {
-        return int.TryParse(cellStr, out int intValue) ? intValue.ToString() : string.Empty;
-    }
-    private static string ProcessFloat(string cellStr)
-    {
-        return float.TryParse(cellStr, out float floatValue) ? floatValue.ToString() : string.Empty;
-    }
-    private static string ProcessDouble(string cellStr)
-    {
-        return double.TryParse(cellStr, out double doubleValue) ? doubleValue.ToString() : string.Empty;
-    }
-    private static string ProcessLong(string cellStr)
-    {
-        return long.TryParse(cellStr, out long longValue) ? longValue.ToString() : string.Empty;
-    }
-    private static string ProcessString(string cellStr)
-    {
-        return cellStr;
-    }
-    private static string ProcessBool(string cellStr)
-    {
-        return bool.TryParse(cellStr, out bool boolValue) ? boolValue.ToString() : string.Empty;
-    }
-    private static string ProcessDateTime(string cellStr)
-    {
-        return DateTime.TryParse(cellStr, out DateTime dateValue) ? dateValue.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : string.Empty;
-    }
+    // 旧的类型转换方法已被统一的泛型方法替代
     // 
     /// <summary>
     /// arr处理方法
@@ -230,10 +216,10 @@ public class Xlsx2Csv
         {
             var trimmedGroup = group.Trim();
             if (string.IsNullOrEmpty(trimmedGroup)) continue;
-            var groupContent = trimmedGroup.Trim('(', ')'); // 始终去除外部括号  因为填写表的时候带有括号
-            // arr<intSlice> 特殊处理：组内全是int，用逗号分割
+            var groupContent = trimmedGroup.Trim('(', ')');
             if (typeList.Length == 1 && typeList[0].EndsWith("slice"))
             {
+                // arr<intSlice> 特殊处理：组内全是int，用逗号分割，不包裹引号
                 var sliceStr = ProcessSlice(typeList[0], groupContent, false);
                 result.Add(useGroupParentheses ? $"({sliceStr})" : sliceStr);
             }
@@ -245,10 +231,8 @@ public class Xlsx2Csv
                 {
                     var t = typeList[i].Trim();
                     var v = items[i].Trim();
-                    if (t.EndsWith("slice"))
-                        itemResult.Add(ProcessSlice(t, v, false));
-                    else
-                        itemResult.Add(ProcessArrItem(t, v));
+                    // arr<> 里嵌套 slice 也不包裹引号
+                    itemResult.Add(ProcessArrItem(t, v, false));
                 }
                 var groupStr = string.Join(",", itemResult);
                 result.Add(useGroupParentheses ? $"({groupStr})" : groupStr);
@@ -258,7 +242,7 @@ public class Xlsx2Csv
     }
 
     // 处理 arr<> 内部每个元素的类型
-    private static string ProcessArrItem(string type, string value)
+    private static string ProcessArrItem(string type, string value, bool wrapQuote = false)
     {
         switch (type)
         {
@@ -276,10 +260,10 @@ public class Xlsx2Csv
                 return DateTime.TryParse(value, out DateTime dateValue) ? dateValue.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "";
             case "string":
                 return value;
-            case var t when t.EndsWith("slice"):
-                // slice类型嵌套，直接用ProcessSlice
-                return ProcessSlice(type, value);
             default:
+                // slice类型嵌套，直接用ProcessSlice，arr<> 里 wrapQuote=false，单独slice字段 wrapQuote=true
+                if (type.EndsWith("slice"))
+                    return ProcessSlice(type, value, wrapQuote);
                 return value;
         }
     }
@@ -323,6 +307,6 @@ public class Xlsx2Csv
             }
         }
         var joined = string.Join(",", result);
-        return wrapQuote ? ('"' + joined + '"') : joined;
+        return wrapQuote ? '"' + joined + '"' : joined;
     }
 }

@@ -29,8 +29,8 @@ class Program
 
         try
         {
-            ReleasePlay(args);
-            //_ = DebugPlay();
+            //ReleasePlay(args);
+            _ = DebugPlay();
         }
         catch (Exception ex)
         {
@@ -48,10 +48,10 @@ class Program
         var outputCsharp = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../csharpOutput"));
 
         //1.导出csv
-        //Xlsx2Csv.ConvertAll(inputExcel, outputCsv);
+        Xlsx2Csv.ConvertAll(inputExcel, outputCsv);
 
         //2.导出csharp
-        Xlsx2Csharp.ConvertAll(inputExcel, outputCsharp);
+        //Xlsx2Csharp.ConvertAll(inputExcel, outputCsharp);
         await Task.CompletedTask;
 
         //3.加载所有表数据
