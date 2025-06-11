@@ -9,9 +9,14 @@ using Org.BouncyCastle.Crypto.Parameters; // 通用接口
 
 public class Xlsx2Csharp
 {
+    // 统一缩进控制
+    private static readonly string indent0 = "";
+    private static readonly string indent1 = "\t";
+    private static readonly string indent2 = indent1 + "\t";
+    private static readonly string indent3 = indent2 + "\t";
+
     private const string NAME_SPACE = "GameFramework.Table";
     private const string DictionaryName = "_dataMap";
-
     private const string AsyncOperation = "Task"; // 异步操作的类型名
 
 
@@ -57,22 +62,22 @@ public class Xlsx2Csharp
             // 创建 StringBuilder 用于生成 C# 类定义
             /************************************************************************************/
             StringBuilder classBuilder = new StringBuilder();
-            classBuilder.AppendLine("using System;");
-            classBuilder.AppendLine("using System.Collections.Generic;");
+            classBuilder.AppendLine($"{indent0}using System;");
+            classBuilder.AppendLine($"{indent0}using System.Collections.Generic;");
             classBuilder.AppendLine();
             /************************************************************************************/
             if (!string.IsNullOrEmpty(NAME_SPACE))
             {
-                classBuilder.AppendLine($"namespace {NAME_SPACE}");
-                classBuilder.AppendLine("{");
+                classBuilder.AppendLine($"{indent0}namespace {NAME_SPACE}");
+                classBuilder.AppendLine($"{indent0}{{");
             }
 
-            classBuilder.AppendLine($"\tpublic partial class {className} : ITable");
-            classBuilder.AppendLine("\t{");
+            classBuilder.AppendLine($"{indent1}public partial class {className} : ITable");
+            classBuilder.AppendLine($"{indent1}{{");
 
             // 添加静态字典字段
-            classBuilder.AppendLine($"\t\tprivate static readonly Dictionary<int, {className}> {DictionaryName} = new Dictionary<int, {className}>();");
-            classBuilder.AppendLine($"\t\tprivate static List<{className}> _dataList;");
+            classBuilder.AppendLine($"{indent2}private static readonly Dictionary<int, {className}> {DictionaryName} = new Dictionary<int, {className}>();");
+            classBuilder.AppendLine($"{indent2}private static List<{className}> _dataList;");
             classBuilder.AppendLine();
 
             // 遍历字段定义
@@ -121,9 +126,9 @@ public class Xlsx2Csharp
                     // 添加字段描述作为注释
                     if (!string.IsNullOrWhiteSpace(description))
                     {
-                        classBuilder.AppendLine($"\t\t/// <summary>");
-                        classBuilder.AppendLine($"\t\t/// {description}");
-                        classBuilder.AppendLine($"\t\t/// </summary>");
+                        classBuilder.AppendLine($"{indent2}/// <summary>");
+                        classBuilder.AppendLine($"{indent2}/// {description}");
+                        classBuilder.AppendLine($"{indent2}/// </summary>");
                     }
 
                     // 将字段名称首字母大写
@@ -143,13 +148,13 @@ public class Xlsx2Csharp
                         subClassBuilder ??= new StringBuilder();
                         ProcessArr(fieldType, arrType, subClassBuilder);
 
-                        classBuilder.AppendLine($"\t\tpublic List<{arrType}> {fieldName} {{ get; set; }}");
-                        fieldLoadBuilder.AppendLine($"\t\t\tthis.{fieldName} = ConvertUtils.LoadArr<{arrType}>(data[{i}]);");
+                        classBuilder.AppendLine($"{indent2}public List<{arrType}> {fieldName} {{ get; set; }}");
+                        fieldLoadBuilder.AppendLine($"{indent3}this.{fieldName} = ConvertUtils.LoadArr<{arrType}>(data[{i}]);");
                     }
                     else
                     {
-                        classBuilder.AppendLine($"\t\tpublic {fieldType} {fieldName} {{ get; set; }}");
-                        fieldLoadBuilder.AppendLine($"\t\t\tthis.{fieldName} = {GetLoadFieldMethod(fieldType, i)};");
+                        classBuilder.AppendLine($"{indent2}public {fieldType} {fieldName} {{ get; set; }}");
+                        fieldLoadBuilder.AppendLine($"{indent3}this.{fieldName} = {GetLoadFieldMethod(fieldType, i)};");
                     }
                 }
             }
@@ -164,58 +169,58 @@ public class Xlsx2Csharp
 
             // 添加获取单个值的方法
             classBuilder.AppendLine();
-            classBuilder.AppendLine($"\t\tpublic static {className} GetById(int id)");
-            classBuilder.AppendLine("\t\t{");
-            classBuilder.AppendLine($"\t\t\tif ({DictionaryName}.TryGetValue(id, out var value))");
-            classBuilder.AppendLine("\t\t\t{");
-            classBuilder.AppendLine("\t\t\t\treturn value;");
-            classBuilder.AppendLine("\t\t\t}");
-            classBuilder.AppendLine("\t\t\treturn null;");
-            classBuilder.AppendLine("\t\t}");
+            classBuilder.AppendLine($"{indent2}public static {className} GetById(int id)");
+            classBuilder.AppendLine($"{indent2}{{");
+            classBuilder.AppendLine($"{indent3}if ({DictionaryName}.TryGetValue(id, out var value))");
+            classBuilder.AppendLine($"{indent3}{{");
+            classBuilder.AppendLine($"{indent3}\treturn value;");
+            classBuilder.AppendLine($"{indent3}}}");
+            classBuilder.AppendLine($"{indent3}return null;");
+            classBuilder.AppendLine($"{indent2}}}");
 
             // 添加获取值列表的方法
             classBuilder.AppendLine();
-            classBuilder.AppendLine($"\t\tpublic static List<{className}> GetAll()");
-            classBuilder.AppendLine("\t\t{");
-            classBuilder.AppendLine("\t\t\tif (_dataList == null)");
-            classBuilder.AppendLine("\t\t\t{");
-            classBuilder.AppendLine($"\t\t\t\t_dataList = new List<{className}>({DictionaryName}.Values);");
-            classBuilder.AppendLine("\t\t\t}");
-            classBuilder.AppendLine("\t\t\treturn _dataList;");
-            classBuilder.AppendLine("\t\t}");
+            classBuilder.AppendLine($"{indent2}public static List<{className}> GetAll()");
+            classBuilder.AppendLine($"{indent2}{{");
+            classBuilder.AppendLine($"{indent3}if (_dataList == null)");
+            classBuilder.AppendLine($"{indent3}{{");
+            classBuilder.AppendLine($"{indent3}\t_dataList = new List<{className}>({DictionaryName}.Values);");
+            classBuilder.AppendLine($"{indent3}}}");
+            classBuilder.AppendLine($"{indent3}return _dataList;");
+            classBuilder.AppendLine($"{indent2}}}");
 
 
             //添加Load方法 生成数据
             classBuilder.AppendLine();
-            classBuilder.AppendLine($"\t\tpublic void Load(string[] data)");
-            classBuilder.AppendLine("\t\t{");
-            classBuilder.AppendLine(fieldLoadBuilder.ToString());
-            classBuilder.AppendLine("\t\t}");
+            classBuilder.AppendLine($"{indent2}public void Load(string[] data)");
+            classBuilder.AppendLine($"{indent2}{{");
+            classBuilder.Append(fieldLoadBuilder.ToString());
+            classBuilder.AppendLine($"{indent2}}}");
 
 
             // 添加 GetId 方法
             classBuilder.AppendLine();
-            classBuilder.AppendLine($"\t\tpublic int GetId()");
-            classBuilder.AppendLine("\t\t{");
-            classBuilder.AppendLine($"\t\t\tvar idProperty = this.GetType().GetProperty(\"ID\");");
-            classBuilder.AppendLine($"\t\t\tif (idProperty != null)");
-            classBuilder.AppendLine("\t\t\t{");
-            classBuilder.AppendLine("\t\t\t\treturn (int)idProperty.GetValue(this);");
-            classBuilder.AppendLine("\t\t\t}");
-            classBuilder.AppendLine("\t\t\tthrow new Exception($\"当前类 {this.GetType().Name} 未定义 ID 属性\");");
-            classBuilder.AppendLine("\t\t}");
+            classBuilder.AppendLine($"{indent2}public int GetId()");
+            classBuilder.AppendLine($"{indent2}{{");
+            classBuilder.AppendLine($"{indent3}var idProperty = this.GetType().GetProperty(\"ID\");");
+            classBuilder.AppendLine($"{indent3}if (idProperty != null)");
+            classBuilder.AppendLine($"{indent3}{{");
+            classBuilder.AppendLine($"{indent3}\treturn (int)idProperty.GetValue(this);");
+            classBuilder.AppendLine($"{indent3}}}");
+            classBuilder.AppendLine($"{indent3}throw new Exception(\"当前类 {{this.GetType().Name}}  未定义 ID 属性\");");
+            classBuilder.AppendLine($"{indent2}}}");
 
 
             //添加LoadAll方法 加载原始数据
             classBuilder.AppendLine();
-            classBuilder.AppendLine($"\t\tpublic static async {AsyncOperation} LoadAll(string type)");
-            classBuilder.AppendLine("\t\t{");
-            classBuilder.AppendLine($"\t\t\tawait TableLoaderUtils.LoadAll(type, {DictionaryName});");
-            classBuilder.AppendLine("\t\t}");
+            classBuilder.AppendLine($"{indent2}public static async {AsyncOperation} LoadAll(string type)");
+            classBuilder.AppendLine($"{indent2}{{");
+            classBuilder.AppendLine($"{indent3}await TableLoaderUtils.LoadAll(type, {DictionaryName});");
+            classBuilder.AppendLine($"{indent2}}}");
 
 
             // 添加类结束标记
-            classBuilder.AppendLine("\t}");
+            classBuilder.AppendLine($"{indent1}}}");
             /************************************************************************************/
 
             // 如果存在 arr<...> 类型的字段，则生成对应的子类
@@ -244,8 +249,8 @@ public class Xlsx2Csharp
 
     private static void ProcessArr(string fieldType, string className, StringBuilder subBuilder)
     {
-        subBuilder.AppendLine($"\tpublic partial class {className} : ITable");
-        subBuilder.AppendLine("\t{");
+        subBuilder.AppendLine($"{indent1}public partial class {className} : ITable");
+        subBuilder.AppendLine($"{indent1}{{");
         /*******************************************************************************************/
         // 处理 arr<...> 类型的字段
         var innerType = fieldType.Substring(4, fieldType.Length - 5).ToLowerInvariant();
@@ -256,7 +261,7 @@ public class Xlsx2Csharp
             string baseType = typeList[0].Replace("slice", "").Trim();
             if (string.IsNullOrEmpty(baseType)) baseType = "int";
             baseType = baseType.ToLowerInvariant();
-            subBuilder.AppendLine($"\t\tpublic List<{GetCSharpBaseType(baseType)}> Args0;");
+            subBuilder.AppendLine($"{indent2}public List<{GetCSharpBaseType(baseType)}> Args0;");
         }
         else
         {
@@ -276,15 +281,15 @@ public class Xlsx2Csharp
                     fieldTypeStr = GetCSharpBaseType(t);
                 }
 
-                subBuilder.AppendLine($"\t\tpublic {fieldTypeStr} Args{i};");
+                subBuilder.AppendLine($"{indent2}public {fieldTypeStr} Args{i};");
             }
         }
 
         // 实现 ITable 接口
 
         // 添加 Load 方法
-        subBuilder.AppendLine($"\t\tpublic void Load(string[] data)");
-        subBuilder.AppendLine("\t\t{");
+        subBuilder.AppendLine($"{indent2}public void Load(string[] data)");
+        subBuilder.AppendLine($"{indent2}{{");
         for (int i = 0; i < typeList.Length; i++)
         {
             string t = typeList[i].Trim();
@@ -294,32 +299,31 @@ public class Xlsx2Csharp
                 string baseType = t.Replace("slice", "").Trim();
                 if (string.IsNullOrEmpty(baseType)) baseType = "int";
                 var fullType = GetCSharpBaseType(baseType);
-                subBuilder.AppendLine($"\t\t\tArgs{i} = ConvertUtils.GetList<{fullType}>(data);");
+                subBuilder.AppendLine($"{indent3}Args{i} = ConvertUtils.GetList<{fullType}>(data);");
                 break;
             }
             else
             {
                 var fullType = GetCSharpBaseType(t);
-                subBuilder.AppendLine($"\t\t\tArgs{i} = ConvertUtils.Get<{fullType}>(data[{i}]);");
+                subBuilder.AppendLine($"{indent3}Args{i} = ConvertUtils.Get<{fullType}>(data[{i}]);");
             }
         }
 
-        subBuilder.AppendLine("\t\t}");
+        subBuilder.AppendLine($"{indent2}}}");
 
         // 添加 GetId 方法
         subBuilder.AppendLine();
-        subBuilder.AppendLine($"\t\tpublic int GetId()");
-        subBuilder.AppendLine("\t\t{");
-        subBuilder.AppendLine($"\t\t\tvar idProperty = this.GetType().GetProperty(\"ID\");");
-        subBuilder.AppendLine($"\t\t\tif (idProperty != null)");
-        subBuilder.AppendLine("\t\t\t{");
-        subBuilder.AppendLine("\t\t\t\treturn (int)idProperty.GetValue(this);");
-        subBuilder.AppendLine("\t\t\t}");
-        subBuilder.AppendLine("\t\t\tthrow new Exception($\"当前类 {this.GetType().Name} 未定义 ID 属性\");");
-        subBuilder.AppendLine("\t\t}");
+        subBuilder.AppendLine($"{indent2}public int GetId()");
+        subBuilder.AppendLine($"{indent2}{{");
+        subBuilder.AppendLine($"{indent3}var idProperty = this.GetType().GetProperty(\"ID\");");
+        subBuilder.AppendLine($"{indent3}if (idProperty != null)");
+        subBuilder.AppendLine($"{indent3}{{");
+        subBuilder.AppendLine($"{indent3}\treturn (int)idProperty.GetValue(this);");
+        subBuilder.AppendLine($"{indent3}}}");
+        subBuilder.AppendLine($"{indent3}throw new Exception($\"当前类 {{this.GetType().Name}}  未定义 ID 属性\");");
+        subBuilder.AppendLine($"{indent2}}}");
 
-
-        subBuilder.AppendLine("\t}");
+        subBuilder.AppendLine($"{indent1}}}");
         subBuilder.AppendLine();
     }
 
@@ -402,34 +406,34 @@ public class Xlsx2Csharp
         }
 
         StringBuilder loaderBuilder = new StringBuilder();
-        loaderBuilder.AppendLine("using System;");
-        loaderBuilder.AppendLine("using System.Collections.Generic;");
+        loaderBuilder.AppendLine($"{indent0}using System;");
+        loaderBuilder.AppendLine($"{indent0}using System.Collections.Generic;");
+        loaderBuilder.AppendLine();
         if (!string.IsNullOrEmpty(NAME_SPACE))
         {
-            loaderBuilder.AppendLine($"namespace {NAME_SPACE}");
-            loaderBuilder.AppendLine("{");
+            loaderBuilder.AppendLine($"{indent0}namespace {NAME_SPACE}");
+            loaderBuilder.AppendLine($"{indent0}{{");
         }
 
         loaderBuilder.AppendLine();
-        loaderBuilder.AppendLine("public class TableDataLoader");
-        loaderBuilder.AppendLine("{");
-
-        loaderBuilder.AppendLine($"    public static async {AsyncOperation} LoadAll()");
-        loaderBuilder.AppendLine("    {");
-        loaderBuilder.AppendLine($"      List<{AsyncOperation}> tasks = new();");
+        loaderBuilder.AppendLine($"{indent1}public class TableDataLoader");
+        loaderBuilder.AppendLine($"{indent1}{{");
+        loaderBuilder.AppendLine($"{indent2}public static async {AsyncOperation} LoadAll()");
+        loaderBuilder.AppendLine($"{indent2}{{");
+        loaderBuilder.AppendLine($"{indent3}List<{AsyncOperation}> tasks = new();");
 
         foreach (var className in classNames)
         {
-            loaderBuilder.AppendLine($"      tasks.Add({className}.LoadAll(\"{className.Substring(2)}\"));");
+            loaderBuilder.AppendLine($"{indent3}tasks.Add({className}.LoadAll(\"{className.Substring(2)}\"));");
         }
 
-        loaderBuilder.AppendLine($"      await {AsyncOperation}.WhenAll(tasks);");
-        loaderBuilder.AppendLine("    }");
+        loaderBuilder.AppendLine($"{indent3}await {AsyncOperation}.WhenAll(tasks);");
+        loaderBuilder.AppendLine($"{indent2}}}");
         loaderBuilder.AppendLine();
-        loaderBuilder.AppendLine("}");
+        loaderBuilder.AppendLine($"{indent1}}}");
         if (!string.IsNullOrEmpty(NAME_SPACE))
         {
-            loaderBuilder.AppendLine("}");
+            loaderBuilder.AppendLine($"{indent0}}}");
         }
 
         string outputFilePath = Path.Combine(outputDir, "TableDataLoader.cs");

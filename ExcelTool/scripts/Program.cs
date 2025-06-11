@@ -48,38 +48,39 @@ class Program
         var outputCsharp = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../csharpOutput"));
 
         //1.导出csv
-        Xlsx2Csv.ConvertAll(inputExcel, outputCsv);
+        //Xlsx2Csv.ConvertAll(inputExcel, outputCsv);
 
         //2.导出csharp
         Xlsx2Csharp.ConvertAll(inputExcel, outputCsharp);
+        await Task.CompletedTask;
 
         //3.加载所有表数据
-        await TableDataLoader.LoadAll();
-        
-        
-        T_Person person = T_Person.GetById(1);
-        Console.WriteLine($"===================");
-        Console.WriteLine($"ID: {person.ID}, Name: {person.Name}, Age: {person.Age}, BornTime: {person.BornTime}, Score: {string.Join(", ", person.Score)}");
-        Console.WriteLine("X1 Data:");
-        foreach (var x1 in person.X1)
-        {
-            Console.WriteLine($"  X1 Args0: {x1.Args0}, Args1: {x1.Args1}");
-        }
-        Console.WriteLine("X2 Data:");
-        foreach (var x2 in person.X2)
-        {
-            Console.WriteLine($"  X2 Args0: {x2.Args0}, Args1: {x2.Args1}");
-        }
-        Console.WriteLine("Y1 Data:");
-        foreach (var y1 in person.Y1)
-        {
-            int index = 0;
-            Console.WriteLine($"inex = {index}===================");
-            foreach (var item in y1.Args0)
-            {
-                Console.WriteLine($"  Y1 ID: {item}");
-            }
-        }
+        // await TableDataLoader.LoadAll();
+
+
+        // T_Person person = T_Person.GetById(1);
+        // Console.WriteLine($"===================");
+        // Console.WriteLine($"ID: {person.ID}, Name: {person.Name}, Age: {person.Age}, BornTime: {person.BornTime}, Score: {string.Join(", ", person.Score)}");
+        // Console.WriteLine("X1 Data:");
+        // foreach (var x1 in person.X1)
+        // {
+        //     Console.WriteLine($"  X1 Args0: {x1.Args0}, Args1: {x1.Args1}");
+        // }
+        // Console.WriteLine("X2 Data:");
+        // foreach (var x2 in person.X2)
+        // {
+        //     Console.WriteLine($"  X2 Args0: {x2.Args0}, Args1: {x2.Args1}");
+        // }
+        // Console.WriteLine("Y1 Data:");
+        // foreach (var y1 in person.Y1)
+        // {
+        //     int index = 0;
+        //     Console.WriteLine($"inex = {index}===================");
+        //     foreach (var item in y1.Args0)
+        //     {
+        //         Console.WriteLine($"  Y1 ID: {item}");
+        //     }
+        // }
     }
     
     
