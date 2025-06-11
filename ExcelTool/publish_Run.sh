@@ -4,7 +4,7 @@
 publishDir="./publish"
 
 # 项目文件路径（显式指定）
-projectFile="ExcelTool.csproj"  # 替换为你的实际项目文件名
+projectFile="/Users/ttwj/vs/ExcelTool/ExcelTool/ExcelTool.csproj"  # 替换为你的实际项目文件名
 
 # 检查项目文件是否存在
 if [ ! -f "$projectFile" ]; then
