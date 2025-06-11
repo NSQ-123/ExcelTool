@@ -6,16 +6,7 @@ namespace GameFramework.Table
         public static T Get<T>(string data) where T : IConvertible
         {
             if (string.IsNullOrEmpty(data)) return default(T);
-
-            try
-            {
-                return (T)Convert.ChangeType(data, typeof(T));
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"[读表]转换 Error {typeof(T).Name}:{data}\n{e}");
-            }
-            return default(T);
+            return (T)Convert.ChangeType(data, typeof(T));
         }
         
         public static List<T> GetList<T>(string data)where T : IConvertible

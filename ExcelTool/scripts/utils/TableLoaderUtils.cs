@@ -44,8 +44,6 @@ public class TableLoaderUtils
                     rowValues[j] = rowValues[j].Trim('"');
                 }
 
-                // 假设每行数据都可以转换为 className 类型的对象
-                // 这里需要根据实际情况进行调整
                 T t = new T();
                 t.Load(rowValues);
                 map[t.GetId()] = t;
