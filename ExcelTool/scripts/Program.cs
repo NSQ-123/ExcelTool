@@ -1,28 +1,35 @@
-﻿
-using NPOI.XSSF.UserModel; // 用于处理 .xlsx 文件
-using NPOI.SS.UserModel;   // 通用接口
-using System.IO;
+﻿#define release
+
 using GameFramework.Table;
-using System.Threading.Tasks;
 
 class Program
 {
-    static async Task Main(string[] args)
+    static void Main(string[] args)
     {
-        var inputCsv = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../excel"));
-        var outputCsv = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../csvOutput"));
 
-        var inputCsharp = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../excel"));
+#if release
+        ReleasePlay(args);
+#else
+        _ = DebugPlay();
+#endif
+    }
+
+    private static async Task DebugPlay()
+    {
+        var inputExcel = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../excel"));
+        var outputCsv = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../csvOutput"));
         var outputCsharp = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../csharpOutput"));
 
-        // 导出csv
-        // Xlsx2Csv.ConvertAll(inputCsv, outputCsv);
+        //1.导出csv
+        //Xlsx2Csv.ConvertAll(inputExcel, outputCsv);
 
-        // //导出csharp
-        //Xlsx2Csharp.ConvertAll(inputCsharp, outputCsharp);
+        //2.导出csharp
+        //Xlsx2Csharp.ConvertAll(inputExcel, outputCsharp);
 
-        // 加载所有表数据
+        //3.加载所有表数据
         await TableDataLoader.LoadAll();
+        
+        
         T_Person person = T_Person.GetById(1);
         Console.WriteLine($"===================");
         Console.WriteLine($"ID: {person.ID}, Name: {person.Name}, Age: {person.Age}, BornTime: {person.BornTime}, Score: {string.Join(", ", person.Score)}");
@@ -45,7 +52,37 @@ class Program
             {
                 Console.WriteLine($"  Y1 ID: {item}");
             }
-           
         }
     }
+    
+    
+    
+    
+    
+    private static void ReleasePlay(string[] args)
+    {
+        if (args.Length < 3)
+        {
+            Console.WriteLine("Usage: Program <inputExcel> <outputCsv> <outputCsharp>");
+            return;
+        }
+
+        var inputExcel = args[0];
+        var outputCsv = args[1];
+        var outputCsharp = args[2];
+
+        Console.WriteLine($"Input Excel Path: {inputExcel}");
+        Console.WriteLine($"Output CSV Path: {outputCsv}");
+        Console.WriteLine($"Output C# Path: {outputCsharp}");
+
+        // 导出 CSV
+        Xlsx2Csv.ConvertAll(inputExcel, outputCsv);
+
+        // 导出 C#
+        Xlsx2Csharp.ConvertAll(inputExcel, outputCsharp);
+    }
+    
+    
+    
+    
 }
