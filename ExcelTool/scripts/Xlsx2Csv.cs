@@ -27,6 +27,7 @@ public class Xlsx2Csv
             var csvFilePath = Path.Combine(outputDirectory, $"{fileName}.csv");
             Convert(file, csvFilePath);
         }
+         Console.WriteLine($"[Xlsx2Csv] 共导出 {files.Length} 个CSV 文件");
     }
     
     public static void Convert(string xlsxFilePath, string csvFilePath)
@@ -103,7 +104,7 @@ public class Xlsx2Csv
             }
         }
 
-        Console.WriteLine($"CSV 文件已导出到 {csvFilePath}");
+        Console.WriteLine($"[Xlsx2Csv] 导出 CSV 文件: {csvFilePath}");
     }
 
 

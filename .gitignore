@@ -14,3 +14,5 @@ ExcelTool/obj/ExcelTool.csproj.nuget.g.props
 ExcelTool/obj/ExcelTool.csproj.nuget.g.targets
 ExcelTool/obj/project.assets.json
 ExcelTool/obj
+ExcelTool/bin/Release
+ExcelTool/publish

@@ -34,7 +34,7 @@ public class Xlsx2Csharp
         }
 
         CreateTableDataLoader(outputDir, list);
-        Debug($"已将 {files.Length} 个 Excel 文件转换为 C# 类定义，并保存到 {outputDir}");
+        Debug($"共转换 {files.Length} 个C# 类文件");
     }
 
 
@@ -238,7 +238,7 @@ public class Xlsx2Csharp
             File.WriteAllText(outputFilePath, classBuilder.ToString(), Encoding.UTF8);
         }
 
-        Debug($"C# 类已生成并保存到 {outputFilePath}");
+        Debug($"生成 C# 类： {className}");
 
         //return !string.IsNullOrEmpty(NAME_SPACE)?$"{NAME_SPACE}.{className}": className;
         return className; // 返回类名

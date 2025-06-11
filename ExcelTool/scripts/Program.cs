@@ -16,10 +16,6 @@ class Program
         var outputCsv = args[1];
         var outputCsharp = args[2];
 
-        Console.WriteLine($"Input Excel Path: {inputExcel}");
-        Console.WriteLine($"Output CSV Path: {outputCsv}");
-        Console.WriteLine($"Output C# Path: {outputCsharp}");
-
         // 导出 CSV
         Xlsx2Csv.ConvertAll(inputExcel, outputCsv);
 
@@ -31,8 +27,17 @@ class Program
     static void Main(string[] args)
     {
 
-        ReleasePlay(args);
-        //_ = DebugPlay();
+        try
+        {
+            ReleasePlay(args);
+            //_ = DebugPlay();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("发生异常：" + ex);
+        }
+        Console.WriteLine("按任意键退出...");
+        Console.ReadKey();
 
     }
 
