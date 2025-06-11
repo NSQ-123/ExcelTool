@@ -9,6 +9,9 @@ projectFile="ExcelTool.csproj"  # 替换为你的实际项目文件名
 # 检查项目文件是否存在
 if [ ! -f "$projectFile" ]; then
     echo "Error: Project file '$projectFile' not found in current directory."
+    echo "Current directory: $(pwd)"
+    echo "Files in current directory:"
+    ls -l
     exit 1
 fi
 
